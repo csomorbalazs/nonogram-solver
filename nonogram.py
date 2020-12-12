@@ -205,7 +205,26 @@ class Nonogram():
         solved_line = [e if result[i] else -1 for i,
                        e in enumerate(possible_lines[0])]
 
-        return solved_line
+        return np.array(solved_line)
+
+    def solve(self) -> bool:
+        i = 0
+        passive_since = 0
+        while not self.is_solved():
+            print(i)
+            if i > 200:
+                print("asss")
+            if self.solve_line(i % (self.row_count + self.col_count)) == 0:
+                print("jajj")
+                passive_since += 1
+            else:
+                passive_since = 0
+
+            if passive_since >= self.row_count + self.col_count:
+                return False
+            i += 1
+
+        return True
 
 
 def random_nonogram(row_count, col_count) -> Nonogram:
@@ -224,21 +243,19 @@ def random_nonogram(row_count, col_count) -> Nonogram:
         colored_cells=colored_fields)
 
     nonogram.calculate_descriptors()
+    nonogram.reset_cells()
 
-    return nonogram
+    if nonogram.solve():
+        return nonogram
+    else:
+        return random_nonogram(row_count, col_count)
 
 
 if __name__ == "__main__":
 
     nonogram = random_nonogram(5, 5)
-    nonogram.reset_cells()
 
-    for i in range(1000):
-        nonogram.solve_line(i % 10)
-        nonogram.print()
-        if nonogram.is_solved():
-            print("Solved!")
-            break
+    nonogram.print()
 
     print("Row descriptors:", nonogram.row_descriptors)
     print("Column descriptors: ", nonogram.col_descriptors)
