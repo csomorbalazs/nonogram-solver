@@ -1,0 +1,58 @@
+* {
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+h1 {
+  font-size: 20px;
+}
+
+.container {
+  text-align: center;
+}
+
+.row {
+  display: flex;
+  width: fit-content;
+  margin: 0 auto;
+}
+
+#solve-button {
+  margin-top: 20px;
+  padding: 10px 20px;
+  background-color: rgb(221, 221, 221);
+  border-radius: 4px;
+  border: none;
+  width: 140px;
+}
+
+#nonogram .block {
+  width: 30px;
+  height: 30px;
+  margin: 1px;
+  padding: 0;
+  box-sizing: border-box;
+  border: 1px solid black;
+}
+
+.cell {
+  background-color: rgb(221, 221, 221);
+  border: 1px solid white !important;
+}
+
+.cell.black {
+  background-color: black;
+  border: 1px solid black !important;
+}
+
+.cell.white {
+  background-color: white;
+  border: 1px solid rgb(223, 223, 223) !important;
+}
+
+.descr {
+  text-align: center;
+}
+
+.empty {
+  border: none !important;
+}

@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Solving nonograms using neural networks</title>
+</head>
+
+<body>
+  <section class="container">
+    <h1>Solving nonograms using neural networks</h1>
+    <div id="nonogram"></div>
+    <button disabled id="solve-button">Loading model...</button>
+  </section>
+</body>
+<link rel="stylesheet" href="style.css">
+<script>
+  const nonogram = document.getElementById("nonogram");
+  const solveButton = document.getElementById("solve-button");
+
+  const COLS = 6;
+  const ROWS = 6;
+
+  const COL_DESCR = Math.ceil(ROWS / 2);
+  const ROW_DESCR = Math.ceil(COLS / 2);
+
+  const initNonogram = () => {
+    for (let i = 0; i < ROWS + COL_DESCR; i++) {
+      const row = document.createElement("div");
+      row.className = "row";
+
+      for (let j = 0; j < COLS + ROW_DESCR; j++) {
+        let elem = document.createElement("div");
+        elem.classList.add("block");
+
+        if (i < COL_DESCR && j < ROW_DESCR) {
+          elem.classList.add(`empty`);
+        } else if (i >= COL_DESCR && j >= ROW_DESCR) {
+          elem.classList.add(`cell`);
+          elem.id = `${i - COL_DESCR}${j - ROW_DESCR}`;
+        } else {
+          const input = document.createElement("input");
+          input.type = "text";
+          input.maxLength = `${Math.max(COLS.toString().length, ROWS.toString().length)}`;
+
+          input.classList.add("block", "descr");
+
+          if (i < COL_DESCR) {
+            input.id = `cd-${j - ROW_DESCR}${i}`
+          } else {
+            input.id = `rd-${i - COL_DESCR}${j}`
+          }
+
+          elem = input;
+        }
+
+        row.appendChild(elem);
+      }
+      nonogram.appendChild(row);
+    }
+  }
+
+  const setDescriptors = (rowDescriptors, colDescriptors) => {
+    let rowReversed = rowDescriptors.reverse();
+    let colReversed = colDescriptors.reverse();
+
+    for (let i = 0; i < ROWS; i++) {
+      for (let j = 0; j < ROW_DESCR; j++) {
+        const id = `rd-${i}${j}`;
+
+        const value = rowReversed.pop();
+        if (value !== 0) {
+          document.getElementById(id).value = value;
+        }
+      }
+    }
+
+    for (let i = 0; i < COLS; i++) {
+      for (let j = 0; j < COL_DESCR; j++) {
+        const id = `cd-${i}${j}`;
+
+        const value = colReversed.pop()
+        if (value !== 0) {
+          document.getElementById(id).value = value;
+        }
+      }
+    }
+  }
+
+  const getDescriptors = () => {
+    const rowDescriptors = [];
+    const colDescriptors = [];
+
+    for (let i = 0; i < ROWS; i++) {
+      for (let j = 0; j < ROW_DESCR; j++) {
+        const id = `rd-${i}${j}`;
+
+        const value = document.getElementById(id).value;
+        rowDescriptors.push(+value);
+      }
+    }
+
+    for (let i = 0; i < COLS; i++) {
+      for (let j = 0; j < COL_DESCR; j++) {
+        const id = `cd-${i}${j}`;
+
+        const value = document.getElementById(id).value;
+        colDescriptors.push(+value);
+      }
+    }
+
+    return rowDescriptors.concat(colDescriptors);
+  }
+
+  const showSolutions = (cellValues) => {
+    for (let i = 0; i < ROWS; i++) {
+      for (let j = 0; j < COLS; j++) {
+        const cell = document.getElementById(`${i}${j}`);
+        if (cellValues[i][j] === 1) {
+          cell.classList.remove("white");
+          cell.classList.add("black");
+        } else {
+          cell.classList.remove("black");
+          cell.classList.add("white");
+        }
+      }
+    }
+  }
+
+  const reset = () => {
+    for (let i = 0; i < ROWS; i++) {
+      for (let j = 0; j < COLS; j++) {
+        const cell = document.getElementById(`${i}${j}`);
+        cell.classList.remove("white");
+        cell.classList.remove("black");
+      }
+    }
+
+    for (let i = 0; i < ROWS; i++) {
+      for (let j = 0; j < ROW_DESCR; j++) {
+        const id = `rd-${i}${j}`;
+
+        document.getElementById(id).value = "";
+      }
+    }
+
+    for (let i = 0; i < COLS; i++) {
+      for (let j = 0; j < COL_DESCR; j++) {
+        const id = `cd-${i}${j}`;
+
+        document.getElementById(id).value = "";
+      }
+    }
+
+    solveButton.onclick = solveNonogram;
+    solveButton.innerText = "Solve!";
+  }
+
+  const DEMO_ROW_DESCRIPTORS = [
+    0, 2, 1,
+    0, 0, 3,
+    2, 1, 1,
+    1, 2, 1,
+    0, 1, 1,
+    0, 0, 1
+  ];
+
+  const DEMO_COL_DESCRIPTORS = [
+    0, 0, 2,
+    0, 0, 2,
+    0, 2, 1,
+    0, 0, 5,
+    0, 0, 0,
+    0, 1, 4
+  ];
+
+  initNonogram();
+  setDescriptors(DEMO_ROW_DESCRIPTORS, DEMO_COL_DESCRIPTORS);
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@2.0.0/dist/tf.min.js"></script>
+<script>
+  let model;
+  const loadModel = async () => {
+    model = await tf.loadLayersModel("/model/model.json");
+
+    solveButton.disabled = false;
+    solveButton.innerText = "Solve!";
+  };
+
+  const solveNonogram = async () => {
+    const x = tf.tensor(getDescriptors(), [1, ROWS * COLS]);
+    const y = model.predict(x);
+
+    const predictions = y.round().reshape([ROWS, COLS]).arraySync();
+
+    showSolutions(predictions);
+
+    solveButton.innerText = "Reset";
+    solveButton.onclick = reset;
+  };
+
+  solveButton.onclick = solveNonogram;
+  loadModel();
+</script>
+
+</html>
