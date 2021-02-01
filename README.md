@@ -1,8 +1,3 @@
-> Csapatnév: **3rulez**  
-> Csapattagok: **Bendicsek Márton Bendegúz, Csomor Balázs Patrik**  
-> Mindketten záróvizsgázunk.  
-> Prezentáció: [https://youtu.be/LgbsnY5eUt8](https://youtu.be/LgbsnY5eUt8)
-
 # Solving nonograms using neural networks
 
 Try our neural network based nonogram solver at [nonogram-solver.web.app](https://nonogram-solver.web.app/)
